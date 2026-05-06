@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MAQUINA ULTIMATE</title>
+    <style>
+        /* --- DYNAMIC THEME VARIABLES --- */
+        :root {
+            --bg: #FFFFFF;
+            --ink: #111111;
+            --dim: #DDDDDD;
+            --hlt: #EEEEEE;
+        }
+
+        body.dark-mode {
+            --bg: #050505;
+            --ink: #F0F0F0;
+            --dim: #333333;
+            --hlt: #111111;
+        }
+
+        body { 
+            margin: 0; overflow: hidden; 
+            background-color: var(--bg);
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace; 
+            color: var(--ink);
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            user-select: none;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* --- UI LAYER --- */
+        #interface {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            display: flex; flex-direction: column; justify-content: space-between;
+            padding: 40px; box-sizing: border-box;
+        }
+
+        /* HEADER */
+        header { 
+            display: flex; justify-content: space-between; align-items: flex-start; 
+        }
+        h1 { 
+            font-size: 12px; font-weight: 700; margin: 0; 
+            text-transform: uppercase; border-bottom: 2px solid var(--ink);
+            padding-bottom: 5px; display: inline-block;
+            transition: border-color 0.3s;
+        }
+        
+        /* LEGEND */
+        #legend { text-align: right; line-height: 1.4em; }
+        .dot { display: inline-block; width: 8px; height: 8px; margin-right: 5px; }
+        .l-red { background: #FF3333; }
+        .l-blue { background: #3366FF; }
+        .l-yel { background: #FFCC00; }
+        .l-grn { background: #00CC66; }
+
+        /* FOOTER CONTROLS */
+        footer {
+            pointer-events: auto;
+            border-top: 1px solid var(--ink);
+            padding-top: 20px;
+            display: flex; flex-direction: column; gap: 15px;
+            transition: border-color 0.3s;
+        }
+
+        /* ROW 1: PLAYBACK */
+        .row-playback {
+            display: grid; 
+            grid-template-columns: 60px 1fr 150px; 
+            gap: 30px;
+            align-items: center;
+        }
+
+        /* ROW 2: SYSTEM TOGGLES */
+        .row-system {
+            display: flex; gap: 20px;
+            justify-content: flex-start;
+            padding-top: 10px; border-top: 1px dashed var(--dim);
+        }
+
+        /* BUTTONS */
+        .sys-btn {
+            cursor: pointer; font-weight: 700; text-transform: uppercase;
+            border: 1px solid var(--dim); padding: 4px 12px; 
+            background: transparent; color: var(--ink);
+            font-size: 10px; transition: all 0.2s;
+        }
+        .sys-btn:hover { border-color: var(--ink); }
+        .sys-btn.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+        #play-btn {
+            cursor: pointer; font-weight: 700; text-transform: uppercase;
+            border: 1px solid transparent; padding: 5px 0; text-align: center;
+        }
+        #play-btn:hover { background: var(--hlt); }
+
+        /* TIMELINE */
+        #scrubber-area {
+            height: 20px; position: relative; cursor: crosshair;
+            display: flex; align-items: center;
+        }
+        #scrubber-line {
+            width: 100%; height: 2px; background: var(--dim);
+            transition: background-color 0.3s;
+        }
+        #playhead {
+            position: absolute; left: 0%; top: 5px; bottom: 5px;
+            width: 2px; background: var(--ink);
+            transition: background-color 0.3s;
+        }
+
+        /* SPEED SLIDER */
+        .speed-control { display: flex; flex-direction: column; gap: 5px; }
+        .meta-label { font-size: 9px; color: #888; display: flex; justify-content: space-between; }
+        
+        input[type=range] {
+            -webkit-appearance: none; width: 100%; background: transparent; cursor: pointer;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 2px; background: var(--ink);
+            transition: background-color 0.3s;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 12px; width: 12px;
+            background: var(--bg); border: 2px solid var(--ink);
+            margin-top: -5px; border-radius: 0;
+            transition: border-color 0.3s, background-color 0.3s;
+        }
+
+        /* OVERLAY */
+        #drop-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            z-index: 100; transition: opacity 0.5s, background-color 0.3s;
+        }
+        .hidden { opacity: 0 !important; pointer-events: none !important; }
+        .code-blink { animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+    </style>
+</head>
+<body>
+
+    <div id="drop-overlay">
+        <div style="font-weight:700;">SYSTEM READY</div>
+        <div style="margin-top:10px; opacity:0.6;">DROP 'BAKED_MOTION.CSV'</div>
+        <div class="code-blink" style="margin-top:20px;">_</div>
+    </div>
+
+    <div id="interface" class="hidden">
+        <header>
+            <h1>MAQUINA DE GRABACION DE MOVIMIENTO</h1>
+            <div id="legend">
+                <div><span class="dot l-red"></span>L_ARM</div>
+                <div><span class="dot l-blue"></span>R_ARM</div>
+                <div><span class="dot l-yel"></span>L_LEG</div>
+                <div><span class="dot l-grn"></span>R_LEG</div>
+            </div>
+        </header>
+
+        <footer>
+            <div class="row-playback">
+                <div id="play-btn">STOP</div>
+                
+                <div id="scrubber-area">
+                    <div id="scrubber-line"></div>
+                    <div id="playhead"></div>
+                </div>
+
+                <div class="speed-control">
+                    <div class="meta-label">
+                        <span>VELOCIDAD</span>
+                        <span id="speed-val">1.0x</span>
+                    </div>
+                    <input type="range" id="speed-slider" min="0.1" max="2.0" step="0.1" value="1.0">
+                </div>
+            </div>
+
+            <div class="row-system">
+                <div class="sys-btn active" id="btn-traces">TRAZOS</div>
+                <div class="sys-btn" id="btn-grid">FONDO</div>
+                <div class="sys-btn" id="btn-theme">NOCHE</div>
+            </div>
+        </footer>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- COLORS ---
+        const C_RED    = 0xFF3333;
+        const C_BLUE   = 0x3366FF;
+        const C_YELLOW = 0xFFCC00;
+        const C_GREEN  = 0x00CC66;
+        
+        // --- CONFIG ---
+        const TRAIL_LENGTH = 30;
+        const ALL_JOINTS = [
+            'head', 'neck', 'spine', 'pelvis',
+            'left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow', 'left_wrist', 'right_wrist',
+            'left_hip', 'right_hip', 'left_knee', 'right_knee', 'left_ankle', 'right_ankle'
+        ];
+        const BONE_STRUCTURE = [
+            ['head', 'neck'], ['neck', 'spine'], ['spine', 'pelvis'],
+            ['neck', 'left_shoulder'], ['neck', 'right_shoulder'],
+            ['pelvis', 'left_hip'], ['pelvis', 'right_hip'],
+            ['left_shoulder', 'left_elbow'], ['left_elbow', 'left_wrist'],
+            ['right_shoulder', 'right_elbow'], ['right_elbow', 'right_wrist'],
+            ['left_hip', 'left_knee'], ['left_knee', 'left_ankle'],
+            ['right_hip', 'right_knee'], ['right_knee', 'right_ankle']
+        ];
+        const TRAIL_JOINTS = ['left_wrist', 'right_wrist', 'left_ankle', 'right_ankle'];
+
+        // --- SCENE ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xFFFFFF);
+
+        const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 1.4, 6.5);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.1;
+        controls.target.set(0, 1.0, 0);
+
+        // --- OBJECTS ---
+        const skeletonGroup = new THREE.Group();
+        scene.add(skeletonGroup);
+        
+        let gridHelper; // To be toggled
+        let jointMeshes = {};
+        let boneLines = [];
+        let trails = {}; // { mesh, data[] }
+
+        // --- MATERIALS ---
+        // Dynamic materials for Theme Switching
+        const matRed    = new THREE.MeshBasicMaterial({ color: C_RED });
+        const matBlue   = new THREE.MeshBasicMaterial({ color: C_BLUE });
+        const matYellow = new THREE.MeshBasicMaterial({ color: C_YELLOW });
+        const matGreen  = new THREE.MeshBasicMaterial({ color: C_GREEN });
+        const matInk    = new THREE.MeshBasicMaterial({ color: 0x111111 });
+        const matBone   = new THREE.LineBasicMaterial({ color: 0x111111, linewidth: 1.5 });
+
+        // Trail Material (gets color from limb)
+        function createTrailMat(colorHex) {
+            return new THREE.LineBasicMaterial({ 
+                color: colorHex, 
+                transparent: true, opacity: 0.5 
+            });
+        }
+
+        // --- INIT ---
+        function initSystem() {
+            // 1. Grid (Background)
+            gridHelper = new THREE.GridHelper(20, 20, 0x999999, 0xEEEEEE);
+            gridHelper.position.y = 0;
+            gridHelper.visible = false; // Off by default
+            scene.add(gridHelper);
+
+            // 2. Joints
+            ALL_JOINTS.forEach(name => {
+                // ADJUSTMENT: Make joints much smaller (0.012) to feel human, keep head (0.06)
+                const r = (name === 'head') ? 0.06 : 0.012; 
+
+                const geo = new THREE.SphereGeometry(r, 16, 16);
+                
+                let mat = matInk;
+                if (name.includes('left')) {
+                    if (name.match(/shoulder|elbow|wrist/)) mat = matRed;
+                    if (name.match(/hip|knee|ankle/)) mat = matYellow;
+                } else if (name.includes('right')) {
+                    if (name.match(/shoulder|elbow|wrist/)) mat = matBlue;
+                    if (name.match(/hip|knee|ankle/)) mat = matGreen;
+                }
+                
+                const mesh = new THREE.Mesh(geo, mat);
+                skeletonGroup.add(mesh);
+                jointMeshes[name] = mesh;
+
+                // 3. Trails
+                if (TRAIL_JOINTS.includes(name)) {
+                    const tGeo = new THREE.BufferGeometry();
+                    const tPos = new Float32Array(TRAIL_LENGTH * 3);
+                    tGeo.setAttribute('position', new THREE.BufferAttribute(tPos, 3));
+                    const tMat = createTrailMat(mat.color);
+                    const line = new THREE.Line(tGeo, tMat);
+                    line.frustumCulled = false;
+                    scene.add(line);
+                    trails[name] = { mesh: line, data: [] };
+                }
+            });
+
+            // 4. Bones
+            BONE_STRUCTURE.forEach(([start, end]) => {
+                const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+                const line = new THREE.Line(geo, matBone);
+                skeletonGroup.add(line);
+                boneLines.push({ line, start, end });
+            });
+        }
+        initSystem();
+
+        // --- LOGIC ---
+        let frames = [];
+        let isPlaying = false;
+        let playHead = 0; 
+        let playbackSpeed = 1.0;
+        let showTraces = true;
+
+        function parseCSV(text) {
+            const lines = text.trim().split('\n');
+            const headers = lines[0].trim().split(',');
+            const colMap = {};
+            headers.forEach((h, i) => colMap[h] = i);
+
+            const newFrames = [];
+            for (let i = 1; i < lines.length; i++) {
+                const row = lines[i].split(',');
+                if (row.length < headers.length) continue;
+                
+                const pose = {};
+                let valid = false;
+                ALL_JOINTS.forEach(name => {
+                    if (colMap[name+'_x'] !== undefined) {
+                        pose[name] = new THREE.Vector3(
+                            parseFloat(row[colMap[name+'_x']]),
+                            -parseFloat(row[colMap[name+'_y']]),
+                            parseFloat(row[colMap[name+'_z']])
+                        );
+                        pose[name].y += 1.3;
+                        valid = true;
+                    }
+                });
+                if(valid) {
+                    newFrames.push({
+                        timestamp: parseFloat(row[colMap['timestamp']]),
+                        pose: pose
+                    });
+                }
+            }
+            frames = newFrames;
+            
+            document.getElementById('drop-overlay').classList.add('hidden');
+            document.getElementById('interface').classList.remove('hidden');
+            isPlaying = true;
+            updatePlayBtn();
+        }
+
+        function getPose(t) {
+            const idxA = Math.floor(t) % frames.length;
+            const idxB = (idxA + 1) % frames.length;
+            const alpha = t - Math.floor(t);
+            const poseA = frames[idxA].pose;
+            const poseB = frames[idxB].pose;
+            const res = {};
+            ALL_JOINTS.forEach(name => {
+                if (poseA[name] && poseB[name]) {
+                    res[name] = new THREE.Vector3().lerpVectors(poseA[name], poseB[name], alpha);
+                }
+            });
+            return res;
+        }
+
+        function updateVisuals() {
+            if (frames.length === 0) return;
+            const pose = getPose(playHead);
+
+            // Mesh
+            for (const [name, mesh] of Object.entries(jointMeshes)) {
+                if (pose[name]) mesh.position.copy(pose[name]);
+            }
+            // Lines
+            boneLines.forEach(({ line, start, end }) => {
+                if (pose[start] && pose[end]) {
+                    const pos = line.geometry.attributes.position.array;
+                    pos[0] = pose[start].x; pos[1] = pose[start].y; pos[2] = pose[start].z;
+                    pos[3] = pose[end].x;   pos[4] = pose[end].y;   pos[5] = pose[end].z;
+                    line.geometry.attributes.position.needsUpdate = true;
+                }
+            });
+            // Trails
+            for (const [name, trail] of Object.entries(trails)) {
+                if (!showTraces) {
+                    trail.mesh.visible = false;
+                    continue;
+                }
+                trail.mesh.visible = true;
+                if (pose[name]) {
+                    trail.data.unshift(pose[name].clone());
+                    if (trail.data.length > TRAIL_LENGTH) trail.data.pop();
+                    
+                    const pos = trail.mesh.geometry.attributes.position.array;
+                    for (let i = 0; i < TRAIL_LENGTH; i++) {
+                        const p = trail.data[i] || trail.data[trail.data.length-1] || pose[name];
+                        pos[i*3] = p.x; pos[i*3+1] = p.y; pos[i*3+2] = p.z;
+                    }
+                    trail.mesh.geometry.attributes.position.needsUpdate = true;
+                }
+            }
+
+            // UI
+            const pct = (playHead / frames.length) * 100;
+            document.getElementById('playhead').style.left = pct + '%';
+        }
+
+        // --- ANIM LOOP ---
+        let lastTime = performance.now();
+        function animate(now) {
+            requestAnimationFrame(animate);
+            const dt = (now - lastTime) / 1000;
+            lastTime = now;
+
+            controls.update();
+            renderer.render(scene, camera);
+
+            if (isPlaying && frames.length > 0) {
+                const advance = 30 * dt * playbackSpeed;
+                playHead = (playHead + advance) % frames.length;
+                updateVisuals();
+            }
+        }
+        requestAnimationFrame(animate);
+
+        // --- EVENTS ---
+        
+        // I/O
+        const dropOverlay = document.getElementById('drop-overlay');
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => {
+            document.body.addEventListener(e, (ev) => { ev.preventDefault(); ev.stopPropagation(); });
+        });
+        document.body.addEventListener('drop', (e) => {
+            const file = e.dataTransfer.files[0];
+            const reader = new FileReader();
+            reader.onload = (ev) => parseCSV(ev.target.result);
+            reader.readAsText(file);
+        });
+
+        // PLAYBACK UI
+        const playBtn = document.getElementById('play-btn');
+        function updatePlayBtn() { playBtn.innerText = isPlaying ? "STOP" : "RUN"; }
+        playBtn.addEventListener('click', () => { isPlaying = !isPlaying; updatePlayBtn(); });
+
+        const scrubber = document.getElementById('scrubber-area');
+        scrubber.addEventListener('pointerdown', (e) => {
+            const rect = scrubber.getBoundingClientRect();
+            const update = (ev) => {
+                const x = Math.max(0, Math.min(ev.clientX - rect.left, rect.width));
+                playHead = (x / rect.width) * frames.length;
+                updateVisuals();
+            }
+            update(e);
+            const move = (ev) => update(ev);
+            const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+            window.addEventListener('pointermove', move);
+            window.addEventListener('pointerup', up);
+        });
+
+        const speedSlider = document.getElementById('speed-slider');
+        const speedVal = document.getElementById('speed-val');
+        speedSlider.addEventListener('input', (e) => {
+            playbackSpeed = parseFloat(e.target.value);
+            speedVal.innerText = playbackSpeed.toFixed(1) + "x";
+        });
+
+        // SYSTEM SWITCHES
+        document.getElementById('btn-traces').addEventListener('click', (e) => {
+            showTraces = !showTraces;
+            e.target.classList.toggle('active');
+        });
+        
+        document.getElementById('btn-grid').addEventListener('click', (e) => {
+            gridHelper.visible = !gridHelper.visible;
+            e.target.classList.toggle('active');
+        });
+
+        document.getElementById('btn-theme').addEventListener('click', (e) => {
+            document.body.classList.toggle('dark-mode');
+            e.target.classList.toggle('active');
+            
+            // Update Three.js Background
+            const isDark = document.body.classList.contains('dark-mode');
+            scene.background.setHex(isDark ? 0x050505 : 0xFFFFFF);
+            
+            // Update "Ink" Materials
+            const inkColor = isDark ? 0xF0F0F0 : 0x111111;
+            matInk.color.setHex(inkColor);
+            matBone.color.setHex(inkColor);
+            
+            // Update Grid Colors
+            // (Color1, Color2) -> Center, Grid
+            if (isDark) {
+                gridHelper.colorCenterLine.setHex(0x444444);
+                gridHelper.colorGrid.setHex(0x222222);
+            } else {
+                gridHelper.colorCenterLine.setHex(0x999999);
+                gridHelper.colorGrid.setHex(0xEEEEEE);
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
+</body>
+</html>
