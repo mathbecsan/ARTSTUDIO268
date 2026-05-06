@@ -1,0 +1,4 @@
+cd Desktop/MotionCapture
+source my_env/bin/activate
+python motion_recorder.py
+
